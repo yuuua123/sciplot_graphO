@@ -49,7 +49,7 @@ delays_dict getDelays() {
 
         auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-        std::string key(1, sym);
+        std::string key(1, sym); // 'a', "a"
 
         if (res.find(key) != res.end()) {
             ++res[key]["count"];
@@ -117,7 +117,7 @@ delays_dict getPairDelays() {
  * Получение задержек перед нажатием клавиши в простом формате. То есть мы не получаем символ,который был нажат, мы
  * просто создаем вектор задержек, без привязки к символу.
  *
- * @return {задержка_1, ..., задержка_2} (задержки в миллисекундах)
+ * @return {задержка_1, ..., задержка_n} (задержки в миллисекундах)
  */
 std::vector<long long> getDelaysSimple() {
     std::vector<long long> res;
@@ -146,6 +146,12 @@ std::vector<long long> getDelaysSimple() {
 std::vector<double> averageDelays(const delays_dict &delays) {
     std::vector<double> res;
     for (const auto &item: delays) {
+        if (item.second.at("count") <= 0) {
+            throw std::runtime_error("Zero division error.");
+        }
+        if (item.second.at("delay") < 0) {
+            throw std::runtime_error("Delay can not be negative value");
+        }
         res.push_back(static_cast<double>(item.second.at("delay")) / static_cast<double>(item.second.at("count")));
     }
     return res;
@@ -170,6 +176,12 @@ sorted_delays_type sortDelays(const delays_dict &delays) {
 
     std::vector<std::pair<double, std::string>> pairs;
     for (const auto &item: delays) {
+        if (item.second.at("count") <= 0) {
+            throw std::runtime_error("Zero division error.");
+        }
+        if (item.second.at("delay") < 0) {
+            throw std::runtime_error("Delay can not be negative value");
+        }
         pairs.emplace_back(static_cast<double>(item.second.at("delay")) / static_cast<double>(item.second.at("count")),
                            item.first);
     }
@@ -185,14 +197,11 @@ sorted_delays_type sortDelays(const delays_dict &delays) {
     return {averageSortedDelays, sortedSymbols};
 }
 
-// Функция, которая сортирует словарь с задержками по возрастанию
-//
-//  Например: есть такой массив пар, где первый элемент - средняя задержка, а второй - символ
-//  {{1500ms, 'a'}, {1000ms, 'c'}, {1240ms, 'b'}}
-//
-//  На выходе получим такое
-// return: {{1000ms, 1240ms, 1500ms}, {'c', 'b', 'a'}}
-//  Гистограмма со средней задержкой перед нажатием клавиши
+/**
+ * Функция, которая рисует гистограмму со средними задержками перед нажатием каждой из клавиш в порядке возрастания.
+ *
+ * @param delays : Словарь со средними задержками, формат которого описан в функции `getDelays()`
+ */
 void histogramAverageDelay(const delays_dict &delays) {
     auto [x, y] = sortDelays(delays);
 
@@ -224,6 +233,10 @@ void histogramAverageDelay(const delays_dict &delays) {
  */
 void plotDelays(const std::vector<long long>& delays)
 {
+    if (delays.size() == 0) {
+        throw std::runtime_error("delays can not be empty vector.");
+    }
+
     Plot2D plot; // Создаем объект Plot2D для построения 2D-графика
     plot.xlabel("Задержка (мс)"); // Устанавливаем подпись по оси x
     plot.ylabel("Доля нажатий"); // Устанавливаем подпись по оси y
